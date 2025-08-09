@@ -1,5 +1,5 @@
 import { SignupDto } from './dto/signup.dto';
-import { Controller, Post, Get, Body, Res, Req, HttpCode, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res, Req, HttpCode, UsePipes, ValidationPipe, UnauthorizedException } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
@@ -17,17 +17,19 @@ export class AuthController {
     async getMe(@Req() req: Request) {
         const accessToken = req.cookies?.access_token;
         if (!accessToken) {
-            return { user: null };
+            return { data: null };
         }
         try {
             const payload = this.jwtService.verify(accessToken);
             return {
-                role: payload.role,
-                firstName: payload.firstName,
-                lastName: payload.lastName
+                data: {
+                    role: payload.role,
+                    firstName: payload.firstName,
+                    lastName: payload.lastName
+                }
             };
         } catch {
-            return { user: null };
+             throw new UnauthorizedException('Unauthorized access');
         }
     }
 
