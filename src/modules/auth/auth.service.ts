@@ -7,6 +7,8 @@ import { User } from 'src/database/entities/user.entity';
 import { LoginDto } from './dto/login.dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { first } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +16,8 @@ export class AuthService {
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         private readonly jwtService: JwtService,
-    ) {}
+        private readonly configService: ConfigService,
+    ) { }
 
     async login(loginDto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
         const user = await this.userRepository.findOne({ where: { email: loginDto.email, isActive: true } });
@@ -25,10 +28,7 @@ export class AuthService {
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid credentials');
         }
-        const payload = { sub: user.id, email: user.email, role: user.role };
-        const accessToken = await this.jwtService.signAsync(payload, { expiresIn: '15m' });
-        const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: '7d' });
-        return { accessToken, refreshToken };
+        return this.generateTokens(user);
     }
 
     async signup(signupDto: SignupDto): Promise<void> {
@@ -46,5 +46,29 @@ export class AuthService {
             isActive: true,
         });
         await this.userRepository.save(user);
+    }
+
+    async rotateTokens(oldRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+        let oldPayload: any;
+        try {
+            oldPayload = this.jwtService.verify<any>(oldRefreshToken, {
+                secret: this.configService.get('JWT_SECRET'),
+            });
+        } catch (err) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+        const user = await this.userRepository.findOne({ where: { id: oldPayload.sub, isActive: true } });
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        return this.generateTokens(user);
+    }
+
+    private async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+        const payload = { sub: user.id, role: user.role, firstName: user.firstName, lastName: user.lastName };
+        const accessToken = await this.jwtService.signAsync(payload, { expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') });
+        const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') });
+        return { accessToken, refreshToken };
     }
 }
