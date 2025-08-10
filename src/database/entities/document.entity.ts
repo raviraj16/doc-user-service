@@ -6,9 +6,12 @@ import {
     UpdateDateColumn,
     ManyToOne,
     JoinColumn,
+    OneToMany,
 } from 'typeorm';
 import { User } from './user.entity';
 import { DocumentStatus } from 'src/common/enums/document-status.enum';
+
+import { DocumentFile } from './document-file.entity';
 
 
 @Entity('documents')
@@ -22,17 +25,6 @@ export class Document {
     @Column({ nullable: true })
     description: string;
 
-    @Column()
-    fileName: string;
-
-    @Column()
-    fileUrl: string;
-
-    @Column()
-    fileSize: number;
-
-    @Column()
-    mimeType: string;
 
     @Column({
         type: 'enum',
@@ -56,4 +48,7 @@ export class Document {
 
     @Column('uuid')
     uploadedById: string;
+
+    @OneToMany(() => DocumentFile, (file) => file.document, { cascade: true })
+    files: DocumentFile[];
 }

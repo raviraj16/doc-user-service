@@ -13,10 +13,13 @@ export class CreateDocumentDto {
 
   @ApiPropertyOptional({ 
     example: ['proposal', 'project', 'q3'], 
-    description: 'Tags associated with the document',
-    type: [String]
+    description: 'Tags associated with the document. Can be an array or comma-separated string.',
+    type: [String],
+    oneOf: [
+      { type: 'array', items: { type: 'string' } },
+      { type: 'string' }
+    ]
   })
-  @IsArray()
   @IsOptional()
-  tags?: string[];
+  tags?: string[] | string;
 }
