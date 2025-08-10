@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Param, Body, UploadedFiles, UseInterceptors, Res, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Body, UploadedFiles, UseInterceptors, Res, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam, ApiCookieAuth, getSchemaPath } from '@nestjs/swagger';
 import { DocumentService } from './document.service';
@@ -165,10 +165,10 @@ export class DocumentController {
     return await this.documentService.findOne(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiOperation({ 
     summary: 'Update a document',
-    description: 'Update an existing document\'s metadata and/or file. Requires ADMIN or EDITOR role.'
+    description: 'Partially update an existing document\'s metadata and/or file. Requires ADMIN or EDITOR role.'
   })
   @ApiParam({ 
     name: 'id', 
