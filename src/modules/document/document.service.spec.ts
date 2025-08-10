@@ -25,9 +25,16 @@ describe('DocumentService', () => {
       findOne: jest.fn(),
       find: jest.fn(),
       remove: jest.fn(),
+      createQueryBuilder: jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn(),
+      })),
     };
 
     mockDocumentFileRepository = {
+      create: jest.fn((data) => data),
       save: jest.fn(),
     };
 
@@ -98,10 +105,28 @@ describe('DocumentService', () => {
 
       mockDocumentRepository.create.mockReturnValue(savedDocument);
       mockDocumentRepository.save.mockResolvedValue(savedDocument);
-      mockDocumentRepository.findOne.mockResolvedValue({
-        ...savedDocument,
-        files: expectedDocumentFiles,
-      });
+      
+      // Mock documentFileRepository.create to return the data passed to it
+      mockDocumentFileRepository.create.mockImplementation((data) => data);
+      
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue({
+          id: savedDocument.id,
+          title: savedDocument.title,
+          description: savedDocument.description,
+          status: savedDocument.status,
+          metadata: savedDocument.metadata,
+          createdAt: undefined,
+          updatedAt: undefined,
+          uploadedById: undefined,
+          files: expectedDocumentFiles,
+        }),
+      };
+      mockDocumentRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      
       mockDocumentFileRepository.save.mockResolvedValue(expectedDocumentFiles);
 
       const result = await service.create(createDto, mockFiles);
@@ -114,11 +139,33 @@ describe('DocumentService', () => {
       });
 
       expect(mockDocumentFileRepository.save).toHaveBeenCalledWith(
-        expect.arrayContaining(expectedDocumentFiles.map(expect.objectContaining))
+        expect.arrayContaining([
+          expect.objectContaining({
+            fileName: 'test-uuid_test1.pdf',
+            fileUrl: '/uploads/test-uuid_test1.pdf',
+            fileSize: 100,
+            mimeType: 'application/pdf',
+            documentId: '1',
+          }),
+          expect.objectContaining({
+            fileName: 'test-uuid_test2.pdf',
+            fileUrl: '/uploads/test-uuid_test2.pdf',
+            fileSize: 200,
+            mimeType: 'application/pdf',
+            documentId: '1',
+          }),
+        ])
       );
 
       expect(result).toEqual({
-        ...savedDocument,
+        id: savedDocument.id,
+        title: savedDocument.title,
+        description: savedDocument.description,
+        status: savedDocument.status,
+        metadata: savedDocument.metadata,
+        createdAt: undefined,
+        updatedAt: undefined,
+        uploadedById: undefined,
         files: expectedDocumentFiles,
       });
 
@@ -127,6 +174,108 @@ describe('DocumentService', () => {
 
     it('should throw NotFoundException when no files provided', async () => {
       await expect(service.create(createDto, [])).rejects.toThrow('No file uploaded');
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return all documents with files', async () => {
+      const documents = [
+        {
+          id: '1',
+          title: 'Document 1',
+          files: [],
+        },
+        {
+          id: '2',
+          title: 'Document 2',
+          files: [],
+        },
+      ];
+
+      mockDocumentRepository.find.mockResolvedValue(documents);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual(documents);
+      expect(mockDocumentRepository.find).toHaveBeenCalledWith({ relations: ['files'] });
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a document with files', async () => {
+      const document = {
+        id: '1',
+        title: 'Test Document',
+        files: [],
+      };
+
+      mockDocumentRepository.findOne.mockResolvedValue(document);
+
+      const result = await service.findOne('1');
+
+      expect(result).toEqual(document);
+      expect(mockDocumentRepository.findOne).toHaveBeenCalledWith({ where: { id: '1' }, relations: ['files'] });
+    });
+
+    it('should throw NotFoundException when document not found', async () => {
+      mockDocumentRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne('1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('update', () => {
+    const updateDto = {
+      title: 'Updated Title',
+      description: 'Updated Description',
+    };
+
+    const mockFiles = [
+      {
+        originalname: 'test3.pdf',
+        buffer: Buffer.from('test content 3'),
+        size: 300,
+        mimetype: 'application/pdf',
+      },
+    ] as Express.Multer.File[];
+
+    it('should update and return document with new files', async () => {
+      const existingDocument = {
+        id: '1',
+        title: 'Old Title',
+        description: 'Old Description',
+        files: [],
+      };
+
+      const updatedDocument = {
+        ...existingDocument,
+        ...updateDto,
+        files: [
+          {
+            fileName: 'test-uuid_test3.pdf',
+            fileUrl: '/uploads/test-uuid_test3.pdf',
+            fileSize: 300,
+            mimeType: 'application/pdf',
+            documentId: '1',
+          },
+        ],
+      };
+
+      // Mock findOne to return existing document
+      mockDocumentRepository.findOne.mockResolvedValue(existingDocument);
+      mockDocumentRepository.save.mockResolvedValue(updatedDocument);
+      mockDocumentFileRepository.create.mockImplementation((data) => data);
+
+      const result = await service.update('1', updateDto, mockFiles);
+
+      expect(result).toEqual(updatedDocument);
+      expect(mockDocumentRepository.save).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when document not found', async () => {
+      mockDocumentRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.update('1', updateDto, mockFiles)).rejects.toThrow(NotFoundException);
     });
   });
 
