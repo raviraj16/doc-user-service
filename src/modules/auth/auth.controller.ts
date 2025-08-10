@@ -1,10 +1,12 @@
 import { SignupDto } from './dto/signup.dto';
 import { Controller, Post, Get, Body, Res, Req, HttpCode, UsePipes, ValidationPipe, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiCookieAuth, ApiBody } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto/login.dto';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
     constructor(
@@ -13,6 +15,10 @@ export class AuthController {
     ) { }
 
     @Get('me')
+    @ApiOperation({ summary: 'Get current user details' })
+    @ApiCookieAuth()
+    @ApiResponse({ status: 200, description: 'Returns current user details' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     @UsePipes(new ValidationPipe({ whitelist: true }))
     async getMe(@Req() req: Request) {
         const accessToken = req.cookies?.access_token;
@@ -35,6 +41,10 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(200)
+    @ApiOperation({ summary: 'Login user' })
+    @ApiBody({ type: LoginDto })
+    @ApiResponse({ status: 200, description: 'Login successful' })
+    @ApiResponse({ status: 401, description: 'Invalid credentials' })
     @UsePipes(new ValidationPipe({ whitelist: true }))
     async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const { accessToken, refreshToken } = await this.authService.login(loginDto);
