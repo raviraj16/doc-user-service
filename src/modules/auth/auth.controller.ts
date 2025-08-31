@@ -1,10 +1,11 @@
 import { SignupDto } from './dto/signup.dto';
-import { Controller, Post, Get, Body, Res, Req, HttpCode, UsePipes, ValidationPipe, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res, Req, HttpCode, UsePipes, ValidationPipe, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiCookieAuth, ApiBody } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto/login.dto';
+import { AuthGuard } from 'src/common/guards/auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -18,7 +19,8 @@ export class AuthController {
     @ApiOperation({ summary: 'Get current user details' })
     @ApiCookieAuth()
     @ApiResponse({ status: 200, description: 'Returns current user details' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+    @UseGuards(AuthGuard)
     @UsePipes(new ValidationPipe({ whitelist: true }))
     async getMe(@Req() req: Request) {
         const accessToken = req.cookies?.access_token;

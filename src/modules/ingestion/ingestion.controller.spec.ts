@@ -2,6 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { IngestionController } from './ingestion.controller';
 import { IngestionService } from './ingestion.service';
 import { IngestionStatus } from './ingestion.types';
+import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from 'src/common/guards/auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+
+// Create mock guards to prevent dependency issues
+jest.mock('src/common/guards/auth.guard');
+jest.mock('src/common/guards/roles.guard');
 
 describe('IngestionController', () => {
   let controller: IngestionController;
@@ -18,7 +25,8 @@ describe('IngestionController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IngestionController],
       providers: [
-        { provide: IngestionService, useValue: mockService }
+        { provide: IngestionService, useValue: mockService },
+        { provide: JwtService, useValue: { verify: jest.fn() } }
       ]
     }).compile();
 

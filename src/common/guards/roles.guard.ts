@@ -18,18 +18,19 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const accessToken = request.cookies?.access_token;
-
     if (!accessToken) {
-      throw new UnauthorizedException('Not authenticated');
+      return false;
     }
 
     try {
       const payload = this.jwtService.verify(accessToken);
       const userRole = payload.role;
-      
-      return roles.includes(userRole);
+      if (!roles.includes(userRole)) {
+        throw new UnauthorizedException(`Forbidden - Insufficient permissions (requires ${roles.join(' or ')} role)`);
+      }
+      return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      return false;
     }
   }
 }

@@ -32,6 +32,7 @@ import {
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { AuthGuard } from 'src/common/guards/auth.guard';
 
 @ApiTags('User Management')
 @Controller('user')
@@ -58,6 +59,8 @@ export class UserController {
     status: 409, 
     description: 'Conflict - User with email already exists'
   })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async create(
     @Body() createUserDto: CreateUserDto,
     @Req() req: Request,
@@ -90,6 +93,8 @@ export class UserController {
     description: 'Users retrieved successfully',
     type: UserListResponseDto
   })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async findAll(
     @Req() req: Request,
     @Res() res: Response
@@ -127,6 +132,8 @@ export class UserController {
     status: 404, 
     description: 'User not found'
   })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async findOne(
     @Param('id') id: string,
     @Req() req: Request,
@@ -168,6 +175,8 @@ export class UserController {
     status: 409, 
     description: 'Conflict - Email already exists'
   })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -206,6 +215,8 @@ export class UserController {
     status: 404, 
     description: 'User not found'
   })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async remove(
     @Param('id') id: string,
     @Req() req: Request,

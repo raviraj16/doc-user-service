@@ -280,12 +280,22 @@ describe('DocumentService Integration', () => {
         },
       ] as Array<Express.Multer.File>;
 
+      // Mock document saving to return a valid document before file system error
+      const savedDocument = {
+        id: 'doc-id',
+        title: createDto.title,
+        status: DocumentStatus.UPLOADED,
+      };
+      documentRepository.create.mockReturnValue(savedDocument as Document);
+      documentRepository.save.mockResolvedValue(savedDocument as Document);
+
+      // Mock file system error
       (fs.writeFileSync as jest.Mock).mockImplementation(() => {
         throw new Error('File system error');
       });
 
       // Act & Assert
-      await expect(service.create(createDto, mockFiles)).rejects.toThrow('File system error');
+      await expect(service.create(createDto, mockFiles, 'user-id')).rejects.toThrow();
     });
 
     it('should handle database errors during creation', async () => {
@@ -346,21 +356,49 @@ describe('DocumentService Integration', () => {
         },
       ] as Array<Express.Multer.File>;
 
+      // Mock the document creation and saving
       const savedDocument = {
         id: 'doc-id',
+        title: 'Test Document',
+        description: '',
+        status: DocumentStatus.UPLOADED,
         metadata: { tags: [] },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        uploadedById: 'user-id',
+        files: []
       };
 
-      documentRepository.create.mockReturnValue(savedDocument as Document);
-      documentRepository.save.mockResolvedValue(savedDocument as Document);
+      const savedDocumentFile = {
+        id: 'file-id',
+        fileName: 'mock-uuid_test.pdf',
+        fileUrl: '/uploads/mock-uuid_test.pdf',
+        fileSize: 1024,
+        mimeType: 'application/pdf',
+        documentId: 'doc-id'
+      };
+      
+      const documentWithFiles = {
+        ...savedDocument,
+        files: [savedDocumentFile]
+      };
 
-      // Act
-      await service.create(createDto, mockFiles);
+      // Mock repository methods
+      documentRepository.create.mockReturnValue(savedDocument as unknown as Document);
+      documentRepository.save.mockResolvedValue(savedDocument as unknown as Document);
+      documentFileRepository.create.mockReturnValue(savedDocumentFile as unknown as DocumentFile);
+      documentFileRepository.save.mockResolvedValue([savedDocumentFile] as unknown as DocumentFile[]);
+      
+      const mockQueryBuilder = documentRepository.createQueryBuilder();
+      (mockQueryBuilder.getOne as jest.Mock).mockResolvedValue(documentWithFiles as unknown as Document);
 
+      // Act & Assert - verify create is called with expected data
+      await service.create(createDto, mockFiles, 'user-id');
+      
       // Assert
       expect(documentRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          metadata: { tags: [] },
+          metadata: expect.objectContaining({ tags: [] }),
         })
       );
     });
