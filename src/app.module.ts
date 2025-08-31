@@ -11,6 +11,7 @@ import { getDatabaseConfig } from './config/database.config';
 import { HealthModule } from './modules/health/health.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -24,6 +25,17 @@ import * as path from 'path';
       imports: [ConfigModule],
       useFactory: getDatabaseConfig,
       inject: [ConfigService],
+    }),
+
+    // JWT configuration - register as global module
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      global: true, // Make JwtModule available to all modules
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: config.get<string>('JWT_ACCESS_EXPIRES_IN') },
+      }),
     }),
     AuthModule, UserModule, DocumentModule, IngestionModule, HealthModule,
     ServeStaticModule.forRoot({

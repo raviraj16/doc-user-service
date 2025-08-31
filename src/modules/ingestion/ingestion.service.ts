@@ -40,7 +40,7 @@ export class IngestionService {
 
     const job = await this.get(jobId);
 
-    await axios.post(process.env.INGESTION_ENDPOINT || 'http://python-backend.local/ingest', {
+    await axios.post(process.env.INGESTION_ENDPOINT || 'http://python-backend/ingest', {
       jobId: job.id,
       sourceType: job.sourceType,
       sourceRef: job.sourceRef,

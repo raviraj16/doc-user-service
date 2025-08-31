@@ -11,6 +11,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from 'src/common/guards/auth.guard';
 
 @ApiTags('Documents')
 @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or expired token' })
@@ -80,7 +81,7 @@ export class DocumentController {
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions (requires ADMIN or EDITOR role)' })
   @ApiCookieAuth()
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.EDITOR)
   @UseInterceptors(FilesInterceptor('files'))
   async create(
@@ -124,7 +125,7 @@ export class DocumentController {
     },
   })
   @ApiCookieAuth()
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER)
   async findAll(): Promise<any> {
     return await this.documentService.findAll();
@@ -159,7 +160,7 @@ export class DocumentController {
   })
   @ApiResponse({ status: 404, description: 'Document not found' })
   @ApiCookieAuth()
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.EDITOR, UserRole.VIEWER)
   async findOne(@Param('id') id: string): Promise<any> {
     return await this.documentService.findOne(id);
@@ -217,7 +218,7 @@ export class DocumentController {
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions (requires ADMIN or EDITOR role)' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   @ApiCookieAuth()
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.EDITOR)
   @UseInterceptors(FilesInterceptor('files'))
   async update(
@@ -249,7 +250,7 @@ export class DocumentController {
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions (requires ADMIN or EDITOR role)' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   @ApiCookieAuth()
-  @UseGuards(RolesGuard)
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.EDITOR)
   async remove(@Param('id') id: string) {
     return this.documentService.remove(id);
